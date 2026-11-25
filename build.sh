@@ -28,6 +28,7 @@ cp "$BIN_DIR/Touche" "$APP/Contents/MacOS/Touche"
 SDK_VERSION=$(xcrun --sdk macosx --show-sdk-version)
 vtool -set-build-version macos 14.0 "$SDK_VERSION" -replace -output "$APP/Contents/MacOS/Touche" "$APP/Contents/MacOS/Touche"
 cp Support/Info.plist "$APP/Contents/Info.plist"
+cp Support/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 PLIST="$APP/Contents/Info.plist"
 if [[ -n "${VERSION:-}" ]]; then /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$PLIST"; fi
 if [[ -n "${BUILD_NUMBER:-}" ]]; then /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$PLIST"; fi

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/screenshots/icon.png" width="128" alt="Touché app icon: a fencing mask with a mint key behind its mesh">
+</p>
+
 <h1 align="center">Touché</h1>
 
 <p align="center"><b>YubiKey touch notifications for macOS.</b><br>An alert under the notch when your security key is waiting for a touch.</p>

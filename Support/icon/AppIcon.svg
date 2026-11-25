@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1f2e36"/><stop offset="1" stop-color="#0a1115"/></linearGradient>
+  <linearGradient id="bib" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dfe5e9"/><stop offset=".35" stop-color="#ffffff"/><stop offset="1" stop-color="#bcc7ce"/></linearGradient>
+  <linearGradient id="bibside" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".22"/><stop offset=".25" stop-color="#000" stop-opacity="0"/><stop offset=".75" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+  <radialGradient id="dome" cx="0.4" cy="0.28" r="0.85"><stop offset="0" stop-color="#44525b"/><stop offset="0.55" stop-color="#161e23"/><stop offset="1" stop-color="#05080a"/></radialGradient>
+  <radialGradient id="sheen" cx="0.37" cy="0.22" r="0.42"><stop offset="0" stop-color="#fff" stop-opacity=".26"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6f8fa"/><stop offset="1" stop-color="#7f8b94"/></linearGradient>
+  <pattern id="wire" width="21" height="21" patternUnits="userSpaceOnUse"><path d="M0 10.5H21M10.5 0V21" stroke="#a7b2b9" stroke-width="2.6" stroke-opacity=".5"/></pattern>
+  <clipPath id="face"><path d="M512 100 C664 100 752 186 752 326 C752 556 652 816 512 816 C372 816 272 556 272 326 C272 186 360 100 512 100 Z"/></clipPath>
+  <clipPath id="bibclip"><path d="M350 500 Q512 760 674 500 L804 908 Q512 990 220 908 Z"/></clipPath>
+  <filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="24"/></filter>
+</defs>
+<!-- Full-bleed square: macOS 26+ applies its own squircle mask, and puts icons with transparent margins on a white tile. -->
+<rect width="1024" height="1024" fill="url(#bg)"/>
+<!-- Bib: the padded collar that hangs from the lower edge of the mask and curves around under the chin. -->
+<g clip-path="url(#bibclip)">
+  <rect x="200" y="560" width="624" height="460" fill="url(#bib)"/>
+  <rect x="200" y="560" width="624" height="460" fill="url(#bibside)"/>
+  <path d="M250 880 Q512 950 774 880" fill="none" stroke="#9eabb3" stroke-width="9" stroke-linecap="round" opacity=".6"/>
+</g>
+<g clip-path="url(#face)">
+  <rect width="1024" height="1024" fill="url(#dome)"/>
+  
+  <!-- The key sits behind the mesh, so the wires cross it. The gold disc in its bow is a security key's touch contact. -->
+  <g filter="url(#glow)" opacity=".9"><circle cx="512" cy="300" r="80" fill="none" stroke="#00C878" stroke-width="54"/><rect x="485" y="370" width="54" height="300" fill="#00C878"/></g>
+  <circle cx="512" cy="300" r="80" fill="none" stroke="#00C878" stroke-width="54"/><circle cx="512" cy="300" r="38" fill="#F5C542"/><circle cx="512" cy="300" r="38" fill="none" stroke="#c99a1e" stroke-width="6"/>
+  <rect x="485" y="366" width="54" height="306" rx="16" fill="#00C878"/>
+  <rect x="520" y="566" width="92" height="44" rx="11" fill="#00C878"/>
+  <rect x="520" y="628" width="66" height="44" rx="11" fill="#00C878"/>
+  <rect width="1024" height="1024" fill="url(#wire)"/>
+  <rect width="1024" height="1024" fill="url(#sheen)"/>
+</g>
+<path d="M512 100 C664 100 752 186 752 326 C752 556 652 816 512 816 C372 816 272 556 272 326 C272 186 360 100 512 100 Z" fill="none" stroke="url(#rim)" stroke-width="28"/>
+</svg>
