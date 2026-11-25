@@ -1,10 +1,21 @@
 <h1 align="center">Touché</h1>
 
-<p align="center">An alert you can't miss when your YubiKey wants a touch.</p>
+<p align="center"><b>YubiKey touch notifications for macOS.</b><br>An alert under the notch when your security key is waiting for a touch.</p>
 
-Touché lives in your menu bar and watches for security key touch requests. When one comes in, a glossy card drops out from under the notch, says who's asking, and stays until you touch the key. Then it turns into a checkmark and leaves on its own.
+<p align="center"><a href="https://github.com/schultzisaiah/touche/releases/latest">Download</a> · <code>brew install --cask schultzisaiah/tap/touche</code></p>
 
-It does what [ykding](https://github.com/onyb/ykding) does, with its own alerts instead of macOS notification banners.
+You run `git commit -S` or `ssh`, the YubiKey starts blinking, and the terminal just sits there. Touché lives in your menu bar and catches that moment. A card drops out from under the notch, says who's asking (the repo and commit, or the host), and stays until you touch the key. Then it turns into a checkmark and leaves on its own.
+
+It works with FIDO2 keys (ssh `sk-` keys, `ssh-keygen -Y sign` for git signing) and OpenPGP cards (gpg signing). It's the macOS answer to [yubikey-touch-detector](https://github.com/maximbaz/yubikey-touch-detector) on Linux, and does what [ykding](https://github.com/onyb/ykding) and [yknotify](https://github.com/noperator/yknotify) do, with its own alerts instead of macOS notification banners.
+
+## Install
+
+```sh
+brew trust schultzisaiah/tap
+brew install --cask schultzisaiah/tap/touche
+```
+
+Homebrew asks you to trust a tap once before it loads anything from it. Or download the DMG from the [latest release](https://github.com/schultzisaiah/touche/releases/latest) and drag Touché to Applications. Releases are signed and notarized, and run on macOS 14 or later, on Apple silicon or Intel. `brew upgrade` picks up new versions.
 
 ## The alert
 
@@ -43,7 +54,7 @@ The detection follows [yknotify](https://github.com/noperator/yknotify). While a
 
 The requester lookup is ported from ykding. For git signing it finds the `ssh-keygen -Y sign` or `gpg -bsau` process, takes the repo from its working directory, and reads the commit subject from the git dir. For ssh it finds `ssh-sk-helper` and reads the destination off its parent's command line. If anything fails (or the key lives in ssh-agent, whose requests carry no destination) the alert says "FIDO2 request".
 
-## Build and install
+## Build from source
 
 Requires macOS 14 or later and the Swift toolchain that ships with Xcode.
 
@@ -58,6 +69,12 @@ swift test            # detection, requester parsing, and swipe tests
 
 If ykding is also running, you'll get both: `brew services stop ykding`.
 
+## Releasing
+
+Run the [Release workflow](.github/workflows/release.yml) from the Actions tab. It picks the version from the Conventional Commits since the last release, then builds, signs, notarizes, and publishes the DMG, and updates the cask in [schultzisaiah/homebrew-tap](https://github.com/schultzisaiah/homebrew-tap).
+
 ## Credits
 
 Detection follows [yknotify](https://github.com/noperator/yknotify) by noperator: the log predicate and which messages mean a touch is wanted. The requester lookup and debounce timing are ported from [ykding](https://github.com/onyb/ykding), MIT License, Copyright (c) 2026 Anirudha Bose. The alert design borrows from Psst, a meeting reminder app.
+
+Touché is MIT licensed. See [LICENSE](LICENSE), which also carries ykding's notice.

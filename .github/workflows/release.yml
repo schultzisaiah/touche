@@ -1,0 +1,190 @@
+# Run from the Actions tab to release whatever is on main. scripts/next_version.py picks the version from the
+# Conventional Commits since the last release (or type one in to override it). This builds, signs, and notarizes
+# Touche-X.Y.Z.dmg, publishes it as release vX.Y.Z here, and updates the touche cask in schultzisaiah/homebrew-tap.
+# The tag is created with the release, so a failed run leaves no tag behind and can simply be run again.
+#
+# Repository secrets (the first five have the same names and values as Psst's):
+#   CSC_LINK                     Developer ID Application certificate + private key, exported as .p12, base64-encoded
+#   CSC_KEY_PASSWORD             the password chosen when exporting the .p12
+#   APPLE_ID                     the Apple ID email on the developer account
+#   APPLE_APP_SPECIFIC_PASSWORD  an app-specific password from account.apple.com, used for notarization
+#   APPLE_TEAM_ID                the 10-character team ID
+#   TAP_TOKEN                    fine-grained token with Contents read/write on schultzisaiah/homebrew-tap only
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, e.g. 1.2.0. Leave blank to pick it from the commits since the last release.
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # tags and history, for the version and the release notes
+
+      - name: Toolchain
+        run: |
+          # Use the newest released Xcode on the image, not the image's default, to stay close to local builds.
+          XCODE=$(ls -d /Applications/Xcode_[0-9]*.app | grep -viE 'beta|release_candidate|_rc' | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+          swift --version
+
+      - name: Version
+        env:
+          REQUESTED: ${{ inputs.version }}
+        run: |
+          VERSION="${REQUESTED#v}"
+          if [[ -z "$VERSION" ]]; then VERSION=$(python3 -I scripts/next_version.py); fi
+          if [[ -z "$VERSION" ]]; then
+            echo "::error::No feat, fix, perf, or breaking commits since the last release, so there's nothing to release. Type a version to release anyway."
+            exit 1
+          fi
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::'$VERSION' isn't a version like 1.2.0"
+            exit 1
+          fi
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+            echo "::error::v$VERSION is already released"
+            exit 1
+          fi
+          echo "Releasing $VERSION" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "TAG=v$VERSION" >> "$GITHUB_ENV"
+          echo "BUILD_NUMBER=$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
+          echo "DMG=build/Touche-$VERSION.dmg" >> "$GITHUB_ENV"
+          echo "KEYCHAIN=$RUNNER_TEMP/signing.keychain-db" >> "$GITHUB_ENV"
+
+      - name: Test
+        run: swift test
+
+      - name: Import signing certificate
+        env:
+          P12_BASE64: ${{ secrets.CSC_LINK }}
+          P12_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: |
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 3600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+
+          echo "$P12_BASE64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$P12_PASSWORD" -T /usr/bin/codesign
+          rm "$RUNNER_TEMP/cert.p12"
+          # The intermediate, so codesign can build the full chain even if the .p12 only holds the leaf.
+          curl -fsSL https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer -o "$RUNNER_TEMP/DeveloperIDG2CA.cer"
+          security import "$RUNNER_TEMP/DeveloperIDG2CA.cer" -k "$KEYCHAIN" || true
+
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+
+          IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN" | awk '/Developer ID Application/ { print $2; exit }')
+          if [[ -z "$IDENTITY" ]]; then
+            echo "::error::No Developer ID Application identity in the imported .p12"
+            security find-identity -v -p codesigning "$KEYCHAIN"
+            exit 1
+          fi
+          echo "SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+
+      - name: Build and sign
+        run: UNIVERSAL=1 ./build.sh
+
+      - name: Verify app signature
+        run: |
+          codesign --verify --strict --verbose=2 build/Touché.app
+          codesign --display --verbose=2 build/Touché.app
+          lipo -info build/Touché.app/Contents/MacOS/Touche
+
+      - name: Make DMG
+        run: |
+          STAGE="$RUNNER_TEMP/dmg"
+          mkdir -p "$STAGE"
+          cp -R build/Touché.app "$STAGE/"
+          ln -s /Applications "$STAGE/Applications"
+          hdiutil create -volname Touché -srcfolder "$STAGE" -fs HFS+ -format UDZO -ov "$DMG"
+          codesign --sign "$SIGN_IDENTITY" --timestamp "$DMG"
+
+      - name: Notarize and staple
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          AUTH=(--apple-id "$APPLE_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" --team-id "$APPLE_TEAM_ID")
+
+          RESULT=$(xcrun notarytool submit "$DMG" "${AUTH[@]}" --wait --timeout 30m --output-format json)
+          echo "$RESULT"
+          ID=$(echo "$RESULT" | /usr/bin/python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
+          STATUS=$(echo "$RESULT" | /usr/bin/python3 -c 'import json,sys; print(json.load(sys.stdin)["status"])')
+          if [[ "$STATUS" != "Accepted" ]]; then
+            echo "::error::Notarization finished with status $STATUS"
+            xcrun notarytool log "$ID" "${AUTH[@]}"
+            exit 1
+          fi
+
+          xcrun stapler staple "$DMG"
+          xcrun stapler validate "$DMG"
+          spctl --assess --type open --context context:primary-signature --verbose=2 "$DMG"
+
+      - name: Release notes
+        run: |
+          PREV=$(git tag --list 'v*' --sort=-v:refname --merged HEAD | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || true)
+          RANGE="${PREV:+$PREV..}HEAD"
+          echo "Notes for $RANGE"
+          # Commit subjects become the notes: feat: lines under New, fix: lines under Fixes, nothing else.
+          # Each starts with a capital, as a sentence would: "fix: the pill..." becomes "- The pill...".
+          FEATURES=$(git log --format=%s "$RANGE" | perl -ne 'print "- \u$2\n" if /^feat(\([^)]*\))?!?: (.*)/')
+          FIXES=$(git log --format=%s "$RANGE" | perl -ne 'print "- \u$2\n" if /^fix(\([^)]*\))?!?: (.*)/')
+          {
+            if [[ -n "$FEATURES" ]]; then printf '### New\n%s\n\n' "$FEATURES"; fi
+            if [[ -n "$FIXES" ]]; then printf '### Fixes\n%s\n\n' "$FIXES"; fi
+            if [[ -z "$FEATURES$FIXES" ]]; then echo "Small improvements."; fi
+            printf '### Install\n```sh\nbrew install --cask schultzisaiah/tap/touche\n```\nOr open the DMG and drag Touché to Applications.\n'
+          } > "$RUNNER_TEMP/notes.md"
+          cat "$RUNNER_TEMP/notes.md"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Name the file without build/, so `shasum -c` works next to the downloaded DMG.
+          (cd "$(dirname "$DMG")" && shasum -a 256 "$(basename "$DMG")") | tee "$DMG.sha256"
+          gh release create "$TAG" "$DMG" "$DMG.sha256" \
+            --target "$GITHUB_SHA" --title "Touché $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
+
+      - name: Update Homebrew cask
+        env:
+          TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
+        run: |
+          TAP="$RUNNER_TEMP/tap"
+          git clone --depth 1 "https://x-access-token:$TAP_TOKEN@github.com/schultzisaiah/homebrew-tap.git" "$TAP"
+          SHA=$(shasum -a 256 "$DMG" | awk '{print $1}')
+          mkdir -p "$TAP/Casks"
+          sed -e "s/@VERSION@/$VERSION/" -e "s/@SHA256@/$SHA/" Support/touche.rb > "$TAP/Casks/touche.rb"
+          git -C "$TAP" config user.name "github-actions[bot]"
+          git -C "$TAP" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$TAP" add Casks/touche.rb
+          git -C "$TAP" diff --cached
+          if git -C "$TAP" commit -qm "touche $VERSION"; then
+            git -C "$TAP" push -q
+          else
+            echo "The cask is already at $VERSION"
+          fi
+
+      - name: Remove keychain
+        if: always()
+        run: security delete-keychain "$KEYCHAIN" 2>/dev/null || true
