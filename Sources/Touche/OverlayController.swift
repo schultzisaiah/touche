@@ -280,7 +280,8 @@ final class OverlayController: ObservableObject {
             hideGlow()
             return
         }
-        if glowColor == nil { showGlow(color: Brand.waiting) }
+        // White in both modes: the pills' dark-mode black wouldn't glow.
+        if glowColor == nil { showGlow(color: .white) }
     }
 
     private func showGlow(color: NSColor) {
