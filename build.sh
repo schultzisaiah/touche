@@ -7,7 +7,7 @@
 # Optional environment (used by the release workflow):
 #   SIGN_IDENTITY  a Developer ID Application identity (name or SHA-1); signs with the hardened runtime.
 #                  Unset: ad-hoc signature, fine for running locally.
-#   VERSION        overrides CFBundleShortVersionString (e.g. 1.2.0)
+#   VERSION        overrides CFBundleShortVersionString (e.g. 1.2.0). Unset: from `git describe`, like 1.2.0-3-gabc1234.
 #   BUILD_NUMBER   overrides CFBundleVersion
 #   UNIVERSAL=1    builds for Apple silicon and Intel
 set -euo pipefail
@@ -30,6 +30,7 @@ vtool -set-build-version macos 14.0 "$SDK_VERSION" -replace -output "$APP/Conten
 cp Support/Info.plist "$APP/Contents/Info.plist"
 cp Support/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 PLIST="$APP/Contents/Info.plist"
+VERSION=${VERSION:-$(git describe --tags --match 'v[0-9]*' 2>/dev/null | sed 's/^v//' || true)}
 if [[ -n "${VERSION:-}" ]]; then /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$PLIST"; fi
 if [[ -n "${BUILD_NUMBER:-}" ]]; then /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$PLIST"; fi
 

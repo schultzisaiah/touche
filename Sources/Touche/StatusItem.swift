@@ -88,7 +88,18 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         menu.addItem(login)
 
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit Touché", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(quitItem())
+    }
+
+    /// "Quit Touché", then the running version, dimmed to match the ⌘Q beside it.
+    private func quitItem() -> NSMenuItem {
+        let item = NSMenuItem(title: "Quit Touché", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        guard let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String else { return item }
+        let font = NSFont.menuFont(ofSize: 0)
+        let title = NSMutableAttributedString(string: "Quit Touché", attributes: [.font: font])
+        title.append(NSAttributedString(string: "  v\(version)", attributes: [.font: font, .foregroundColor: NSColor.tertiaryLabelColor]))
+        item.attributedTitle = title
+        return item
     }
 
     private func disabled(_ title: String) -> NSMenuItem {
