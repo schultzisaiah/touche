@@ -16,7 +16,10 @@ cask "touche" do
 
   app "Touché.app"
 
-  uninstall quit: "dev.isaiah.touche"
+  uninstall quit: "heliopolis.p3x972.touche"
 
-  zap trash: "~/Library/Preferences/dev.isaiah.touche.plist"
+  zap trash: [
+    "~/Library/Preferences/dev.isaiah.touche.plist",
+    "~/Library/Preferences/heliopolis.p3x972.touche.plist",
+  ]
 end

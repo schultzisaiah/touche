@@ -34,9 +34,9 @@ if [[ -n "${BUILD_NUMBER:-}" ]]; then /usr/libexec/PlistBuddy -c "Set :CFBundleV
 
 if [[ -n "${SIGN_IDENTITY:-}" ]]; then
   # Notarization requires the hardened runtime and a secure timestamp.
-  codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" --identifier dev.isaiah.touche "$APP"
+  codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" --identifier heliopolis.p3x972.touche "$APP"
 else
-  codesign --force --sign - --identifier dev.isaiah.touche "$APP" >/dev/null
+  codesign --force --sign - --identifier heliopolis.p3x972.touche "$APP" >/dev/null
 fi
 echo "Built $APP"
 
