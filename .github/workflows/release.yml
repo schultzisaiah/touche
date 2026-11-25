@@ -32,7 +32,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0 # tags and history, for the version and the release notes
 
@@ -153,7 +153,7 @@ jobs:
             if [[ -n "$FEATURES" ]]; then printf '### New\n%s\n\n' "$FEATURES"; fi
             if [[ -n "$FIXES" ]]; then printf '### Fixes\n%s\n\n' "$FIXES"; fi
             if [[ -z "$FEATURES$FIXES" ]]; then echo "Small improvements."; fi
-            printf '### Install\n```sh\nbrew install --cask schultzisaiah/tap/touche\n```\nOr open the DMG and drag Touché to Applications.\n'
+            printf '### Install\n```sh\nbrew trust schultzisaiah/tap\nbrew install --cask schultzisaiah/tap/touche\n```\nOr open the DMG and drag Touché to Applications.\n'
           } > "$RUNNER_TEMP/notes.md"
           cat "$RUNNER_TEMP/notes.md"
 
