@@ -4,6 +4,11 @@
 
 <p align="center"><a href="https://github.com/schultzisaiah/touche/releases/latest">Download</a> · <code>brew install --cask schultzisaiah/tap/touche</code></p>
 
+<p align="center">
+  <img src="docs/screenshots/card-dark.jpg" width="400" alt="A Touché card under the notch: Touch your YubiKey, Retry S3 uploads on timeout, waiting 4 seconds, in the schultzisaiah/touche repo, on a FIDO2 security key (dark mode)">
+  <img src="docs/screenshots/card-light.jpg" width="400" alt="The same Touché card in light mode">
+</p>
+
 You run `git commit -S` or `ssh`, the YubiKey starts blinking, and the terminal just sits there. Touché lives in your menu bar and catches that moment. A card drops out from under the notch, says who's asking (the repo and commit, or the host), and stays until you touch the key. Then it turns into a checkmark and leaves on its own.
 
 It works with FIDO2 keys (ssh `sk-` keys, `ssh-keygen -Y sign` for git signing) and OpenPGP cards (gpg signing). It's the macOS answer to [yubikey-touch-detector](https://github.com/maximbaz/yubikey-touch-detector) on Linux, and does what [ykding](https://github.com/onyb/ykding) and [yknotify](https://github.com/noperator/yknotify) do, with its own alerts instead of macOS notification banners.
@@ -18,6 +23,17 @@ brew install --cask schultzisaiah/tap/touche
 Homebrew asks you to trust a tap once before it loads anything from it. Or download the DMG from the [latest release](https://github.com/schultzisaiah/touche/releases/latest) and drag Touché to Applications. Releases are signed and notarized, and run on macOS 14 or later, on Apple silicon or Intel. `brew upgrade` picks up new versions.
 
 ## The alert
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/touched-dark.jpg">
+    <img src="docs/screenshots/touched-light.jpg" width="400" alt="The card once the key is touched: mint, with a full ring and a checkmark">
+  </picture>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/pills-dark.jpg">
+    <img src="docs/screenshots/pills-light.jpg" width="400" alt="Regular and Compact pills: an ssh request to deploy@build-01 waiting 7 seconds, a touched gpg signing request, and an unrecognized FIDO2 request">
+  </picture>
+</p>
 
 - **Who's asking**: the repo and commit subject when git is signing (with ssh-keygen or gpg), or the host and remote command when ssh is authenticating. A request you didn't start shows up as something you don't recognize, instead of training you to tap whenever the key blinks.
 - **Three sizes**: Compact and Regular pills, or a Large card (the default) that adds a detail panel with the repo or remote command and the kind of key.
@@ -66,6 +82,12 @@ swift test            # detection, requester parsing, and swipe tests
 ```
 
 `build/Touché.app --args --preview` plays both kinds of request on launch.
+
+The screenshots are rendered from the real views, under a stand-in notch, in dark and light mode:
+
+```sh
+./build.sh && build/Touché.app/Contents/MacOS/Touche --snapshots docs/screenshots
+```
 
 If ykding is also running, you'll get both: `brew services stop ykding`.
 

@@ -14,6 +14,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if let i = CommandLine.arguments.firstIndex(of: "--snapshots"), i + 1 < CommandLine.arguments.count {
+            Snapshots.render(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
+            NSApp.terminate(nil)
+            return
+        }
         statusItem = StatusItemController(center: center, overlay: overlay)
         center.watcher.start()
         if CommandLine.arguments.contains("--preview") {

@@ -320,6 +320,7 @@ private struct GlassBackground<S: InsettableShape>: View {
     let shape: S
     let tint: Color
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.isSnapshot) private var isSnapshot
 
     /// Stronger in light mode, where a faint tint disappears into the pale glass.
     private var wash: LinearGradient {
@@ -328,7 +329,13 @@ private struct GlassBackground<S: InsettableShape>: View {
     }
 
     var body: some View {
-        if #available(macOS 26, *) {
+        if isSnapshot {
+            ZStack {
+                shape.fill(scheme == .dark ? Color(white: 0.16, opacity: 0.85) : Color.white.opacity(0.85))
+                shape.fill(wash)
+                shape.strokeBorder(tint.opacity(0.6), lineWidth: 1.2)
+            }
+        } else if #available(macOS 26, *) {
             ZStack {
                 shape.fill(wash)
                 shape.strokeBorder(tint.opacity(0.6), lineWidth: 1.2)
